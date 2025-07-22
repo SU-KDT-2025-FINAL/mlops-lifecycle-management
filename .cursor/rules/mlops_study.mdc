@@ -1,0 +1,46 @@
+---
+description: MLOps 수명 주기 구축 스터디를 위한 규칙. Python, Docker, DVC, MLflow, FastAPI, Terraform 사용을 권장하고 모범 사례를 따릅니다.
+globs:
+  - "**/*.py"
+  - "**/Dockerfile"
+  - "**/*.tf"
+  - "dvc.yaml"
+  - "params.yaml"
+alwaysApply: true
+---
+
+## 📜 전반적인 규칙 (General Rules)
+
+- **Python 버전**: 모든 Python 코드는 `Python 3.10` 이상을 기준으로 작성합니다.
+- **언어**: 모든 주석, 변수명, 함수명, 문서는 **영어**로 작성하는 것을 원칙으로 합니다.
+- **코드 스타일**:
+    - **PEP 8** 스타일 가이드를 철저히 준수합니다.
+    - 코드 포매팅은 **Black** 스타일을 사용합니다.
+    - Linter는 **Ruff** 또는 **Flake8**을 사용하여 코드 품질을 관리합니다.
+- **타입 힌팅**: 모든 함수 정의와 변수 선언에 **명확한 타입 힌트(Type Hinting)**를 반드시 포함시켜 코드의 안정성을 높입니다.
+- **문서화**: 모든 함수와 클래스에는 **Google 스타일의 Docstring**을 사용하여 목적, 인자, 반환 값을 명확히 설명합니다.
+- **로깅**: `print()` 대신 **`logging` 모듈**을 사용하여 로그 레벨(INFO, DEBUG, ERROR)에 따라 체계적인 로그를 기록합니다.
+
+---
+
+## 📦 데이터 및 실험 관리 (Data & Experiment)
+
+- **데이터 버전 관리**: 데이터셋과 중간 산출물은 **DVC (Data Version Control)**를 사용하여 버전 관리합니다. 코드에서는 `dvc.api.read()` 등을 활용하여 데이터를 불러옵니다.
+- **실험 추적**: 모델 학습과 관련된 파라미터, 메트릭, 아티팩트는 **MLflow Tracking**을 사용하여 기록하고 관리합니다. `mlflow.start_run()` 컨텍스트 내에서 실험을 진행하세요.
+- **설정 관리**: 하이퍼파라미터, 파일 경로 등 주요 설정 값은 코드에 하드코딩하지 않고, `params.yaml` 또는 `.env` 파일로 분리하여 관리합니다.
+
+```python
+# 예시: MLflow 실험 코드 구조
+import mlflow
+
+with mlflow.start_run():
+    # 파라미터 로깅
+    mlflow.log_param("learning_rate", 0.01)
+
+    # 모델 학습...
+
+    # 메트릭 로깅
+    mlflow.log_metric("accuracy", 0.95)
+
+    # 모델 아티팩트 저장
+    mlflow.sklearn.log_model(model, "model")

@@ -1,0 +1,155 @@
+# MLOps Configuration File
+
+app:
+  name: "MLOps Lifecycle Management"
+  version: "0.1.0"
+  environment: "production"
+  debug: false
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+  workers: 4
+  reload: true
+  cors_origins:
+    - "http://localhost:3000"
+    - "http://localhost:8080"
+
+security:
+  secret_key: "${SECRET_KEY}"
+  algorithm: "HS256"
+  access_token_expire_minutes: 30
+  password_min_length: 8
+
+database:
+  url: "${DATABASE_URL}"
+  pool_size: 10
+  max_overflow: 20
+  pool_timeout: 30
+
+redis:
+  url: "${REDIS_URL}"
+  pool_size: 10
+  decode_responses: true
+
+mlflow:
+  tracking_uri: "${MLFLOW_TRACKING_URI}"
+  experiment_name: "${MLFLOW_EXPERIMENT_NAME}"
+  registry_uri: "${MODEL_REGISTRY_URL}"
+
+dvc:
+  remote_url: "${DVC_REMOTE_URL}"
+  remote_name: "${DVC_REMOTE_NAME}"
+
+monitoring:
+  prometheus_port: 9090
+  grafana_port: 3000
+  alert_webhook_url: "${ALERT_WEBHOOK_URL}"
+  drift_threshold: 0.05
+  performance_threshold: 0.8
+  latency_threshold: 1000
+
+logging:
+  level: "INFO"
+  format: "json"
+  file: "logs/mlops.log"
+  max_bytes: 10485760  # 10MB
+  backup_count: 5
+
+data:
+  raw_path: "data/raw/"
+  processed_path: "data/processed/"
+  features_path: "data/features/"
+  test_size: 0.2
+  validation_size: 0.2
+  random_state: 42
+
+features:
+  numerical_columns:
+    - "age"
+    - "income"
+    - "tenure"
+    - "monthly_charges"
+    - "total_charges"
+  categorical_columns:
+    - "gender"
+    - "contract_type"
+    - "payment_method"
+  target_column: "churn"
+  feature_columns:
+    - "age"
+    - "income"
+    - "tenure"
+    - "monthly_charges"
+    - "total_charges"
+    - "gender_encoded"
+    - "contract_type_encoded"
+    - "payment_method_encoded"
+
+model:
+  name: "churn_predictor"
+  version: "v1.0.0"
+  path: "models/"
+  type: "random_forest"
+  hyperparameters:
+    n_estimators: 100
+    max_depth: 10
+    random_state: 42
+    class_weight: "balanced"
+  evaluation_metrics:
+    - "accuracy"
+    - "precision"
+    - "recall"
+    - "f1"
+    - "roc_auc"
+    - "confusion_matrix"
+    - "classification_report"
+
+training:
+  cross_validation_folds: 5
+  early_stopping_patience: 10
+  max_epochs: 100
+  batch_size: 32
+  learning_rate: 0.01
+
+testing:
+  coverage_threshold: 80
+  test_timeout: 300
+  parallel_workers: 4
+
+docker:
+  registry: "${DOCKER_REGISTRY}"
+  image_name: "${DOCKER_IMAGE_NAME}"
+  tag: "${DOCKER_TAG}"
+  build_context: "."
+  dockerfile: "Dockerfile"
+
+ci_cd:
+  github_actions:
+    enabled: true
+    workflows_path: ".github/workflows/"
+  automated_testing:
+    enabled: true
+    run_on_push: true
+    run_on_pr: true
+  automated_deployment:
+    enabled: true
+    environments:
+      - "staging"
+      - "production"
+
+notifications:
+  email:
+    smtp_server: "${SMTP_SERVER}"
+    smtp_port: "${SMTP_PORT}"
+    username: "${SMTP_USERNAME}"
+    password: "${SMTP_PASSWORD}"
+  slack:
+    webhook_url: "${SLACK_WEBHOOK_URL}"
+    channel: "${SLACK_CHANNEL}"
+
+aws:
+  region: "${AWS_REGION}"
+  access_key_id: "${AWS_ACCESS_KEY_ID}"
+  secret_access_key: "${AWS_SECRET_ACCESS_KEY}"
+  s3_bucket: "${AWS_S3_BUCKET}" 
