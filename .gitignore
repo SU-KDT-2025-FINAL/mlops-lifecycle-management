@@ -214,3 +214,9 @@ Thumbs.db
 # Backup files
 *.bak
 *.backup 
+
+# 커서 룰 개별 관리합시다
+.cursor/rules/
+
+# 커밋 라이브러리
+.pre-commit-config.yaml
