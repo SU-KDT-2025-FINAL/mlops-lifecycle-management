@@ -209,6 +209,7 @@ graph TD
     F6 --> G;
     F7 --> G;
 ```
+
 ## 7. 배포 전략 (Deployment Strategy)
 
 **GitHub Actions**를 이용한 CI/CD 파이프라인을 구축하여 코드 품질과 배포 안정성을 확보합니다.
@@ -216,26 +217,26 @@ graph TD
 ```mermaid
 graph TD
     subgraph "Local"
-        Dev[👩‍💻 Developer]
+        Dev["👩‍💻 Developer"]
     end
     subgraph "GitHub"
-        PR[Pull Request]
-        Main[main branch]
+        PR["Pull Request"]
+        Main["main branch"]
     end
     subgraph "AWS Staging"
-        Staging_EB[Staging Elastic Beanstalk]
+        Staging_EB["Staging Elastic Beanstalk"]
     end
     subgraph "AWS Production"
-        Prod_EB[Production Elastic Beanstalk]
+        Prod_EB["Production Elastic Beanstalk"]
     end
 
     Dev -- "Push feature branch" --> PR
-    PR -- "On PR" --> A(Run Tests & Lint)
+    PR -- "On PR" --> A["Run Tests & Lint"]
     PR -- "Merge" --> Main
-    Main -- "On Push to main" --> B(Build Docker Image<br>Push to ECR)
-    B --> C(Deploy to Staging)
+    Main -- "On Push to main" --> B["Build Docker Image<br>Push to ECR"]
+    B --> C["Deploy to Staging"]
     C --> Staging_EB
-    Main -- "On Manual Trigger<br>(Tag Release)" --> D(Deploy to Production)
+    Main -- "On Manual Trigger<br>(Tag Release)" --> D["Deploy to Production"]
     D --> Prod_EB
 ```
 
@@ -281,3 +282,29 @@ graph TD
 본 제안서는 **"빠른 실행, 낮은 비용, 높은 확장성"** 이라는 MVP의 핵심 철학을 바탕으로 작성되었습니다. 제안된 아키텍처와 로드맵은 초기 시장 진입의 리스크를 최소화하고, 비즈니스 성장에 따라 안정적으로 스케일업할 수 있는 최적의 경로를 제시합니다.
 
 다음 단계로, Phase 1 개발을 위한 구체적인 스프린트 계획과 태스크 분배를 진행할 것을 제안합니다. 
+
+---
+# MLOPS
+
+## 구체화 방향
+1. 학습 데이터 스키마 충분성
+2. 기존 분석사례 정확도 범위
+3. 시스템 최소 요건 (외부 / 내부)
+4. 정상동작 바운더리 검사 및 추적 방법
+  - 예측 이력 모니터링 & 인사이트 정리
+  - 모델 및 프롬프트 버전 등에 따른 성능 관리
+5. 예측 이상 발생 시 대응방법 버전 수립
+6. 대응 방법별 자동화 방안
+   1) 트리거 & 루틴 정의
+     : 정상 예측 정확도 벗어날 경우 
+       실행할 workflow 정의
+   2) 의심되는 원인별 대응
+     : Input 이상으로 의심될 경우
+      - prompt Template 버전 변경 등
+     : Output(모델성능) 이상으로 의심될 경우
+      - 모델 변경, 모델 재학습 등
+
+## 팀원 필요
+- 열정을 가진 사람
+- 분석에 열정을 가진 사람
+- 자동화에 열정을 가진 사람
