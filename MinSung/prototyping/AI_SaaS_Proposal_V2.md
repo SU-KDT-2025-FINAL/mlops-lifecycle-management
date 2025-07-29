@@ -209,6 +209,7 @@ graph TD
     F6 --> G;
     F7 --> G;
 ```
+
 ## 7. 배포 전략 (Deployment Strategy)
 
 **GitHub Actions**를 이용한 CI/CD 파이프라인을 구축하여 코드 품질과 배포 안정성을 확보합니다.
@@ -216,26 +217,26 @@ graph TD
 ```mermaid
 graph TD
     subgraph "Local"
-        Dev[👩‍💻 Developer]
+        Dev["👩‍💻 Developer"]
     end
     subgraph "GitHub"
-        PR[Pull Request]
-        Main[main branch]
+        PR["Pull Request"]
+        Main["main branch"]
     end
     subgraph "AWS Staging"
-        Staging_EB[Staging Elastic Beanstalk]
+        Staging_EB["Staging Elastic Beanstalk"]
     end
     subgraph "AWS Production"
-        Prod_EB[Production Elastic Beanstalk]
+        Prod_EB["Production Elastic Beanstalk"]
     end
 
     Dev -- "Push feature branch" --> PR
-    PR -- "On PR" --> A(Run Tests & Lint)
+    PR -- "On PR" --> A["Run Tests & Lint"]
     PR -- "Merge" --> Main
-    Main -- "On Push to main" --> B(Build Docker Image<br>Push to ECR)
-    B --> C(Deploy to Staging)
+    Main -- "On Push to main" --> B["Build Docker Image<br>Push to ECR"]
+    B --> C["Deploy to Staging"]
     C --> Staging_EB
-    Main -- "On Manual Trigger<br>(Tag Release)" --> D(Deploy to Production)
+    Main -- "On Manual Trigger<br>(Tag Release)" --> D["Deploy to Production"]
     D --> Prod_EB
 ```
 
