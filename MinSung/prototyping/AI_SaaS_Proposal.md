@@ -140,60 +140,75 @@ sequenceDiagram
 ## 5. 컴포넌트 관계도 (Component Diagram)
 
 ```mermaid
-componentDiagram
-    [Web App (React)] as Web
-    
-    package "Backend (FastAPI on Elastic Beanstalk)" {
-      [API Endpoints] as Endpoints
-      [Celery Task Dispatcher] as Dispatcher
-    }
-    
-    package "Async Workers (Celery)" {
-      [Data Sync Worker]
-      [ML Pipeline Worker]
-    }
+graph TD
+    subgraph "User Interface"
+        Web["Web App (React)"]
+    end
 
-    Endpoints --> Dispatcher
+    subgraph "Backend (FastAPI on Elastic Beanstalk)"
+        Endpoints["API Endpoints"]
+        Dispatcher["Celery Task Dispatcher"]
+        Endpoints --> Dispatcher
+    end
 
-    Dispatcher -- "sends job" --> [Redis (Broker)]
-    [Redis (Broker)] -- "delivers job" --> [Data Sync Worker]
-    [Redis (Broker)] -- "delivers job" --> [ML Pipeline Worker]
+    subgraph "Async Workers (Celery)"
+        DSW["Data Sync Worker"]
+        MLW["ML Pipeline Worker"]
+    end
 
-    [Data Sync Worker] --> [E-commerce API]
-    [Data Sync Worker] --> [S3 Data Lake]
-    
-    [ML Pipeline Worker] --> [S3 Data Lake]
-    [ML Pipeline Worker] --> [MLflow]
-    [ML Pipeline Worker] --> [PostgreSQL (RDS)]
+    subgraph "Data & ML Platform"
+        DB["PostgreSQL (RDS)"]
+        S3["S3 Data Lake"]
+        Redis["Redis (ElastiCache)"]
+        MLflow["MLflow Server"]
+    end
+
+    subgraph "External Services"
+        EcomAPI["E-commerce API"]
+    end
 
     Web --> Endpoints
-    Endpoints --> [PostgreSQL (RDS)]
+    Endpoints --> DB
+
+    Dispatcher -- "sends job" --> Redis
+
+    Redis -- "delivers job" --> DSW
+    Redis -- "delivers job" --> MLW
+
+    DSW --> EcomAPI
+    DSW --> S3
+
+    MLW --> S3
+    MLW --> MLflow
+    MLW --> DB
 ```
+
 ## 6. 데이터 및 알고리즘 플로우 (Data & Algorithm Flow)
 
 #### 6.1. 일일 데이터 동기화 및 자동 재훈련 플로우
 
 ```mermaid
 graph TD
-    A(Start: 매일 03:00 스케줄 실행<br>Celery Beat) --> B[E-commerce API 호출];
-    B --> C[어제 자 신규/변경 데이터 수집];
-    C --> D[S3 Raw Data Zone에 저장];
-    D --> E{주간 재훈련일인가? (e.g., 매주 일요일)};
-    E -->|Yes| F[AutoML 재훈련 파이프라인 실행];
-    E -->|No| G(End);
-    
-    subgraph F
-        direction LR
-        F1[S3의 전체 Raw 데이터 로드] --> F2[Feature Engineering];
-        F2 --> F3[AutoML로 최적 모델 탐색<br>(MLflow Experiment Tracking)];
-        F3 --> F4[기존 Production 모델과 성능 비교];
-        F4 --> F5{새 모델 성능이 더 우수한가?};
-        F5 -->|Yes| F6[MLflow Model Registry에 새 모델 등록 및<br>'Production'으로 Stage 변경];
-        F5 -->|No| F7(기존 모델 유지);
-    end
-    F --> G;
-```
+    A("Start: 매일 03:00 스케줄 실행<br>Celery Beat") --> B["E-commerce API 호출"];
+    B --> C["어제 자 신규/변경 데이터 수집"];
+    C --> D["S3 Raw Data Zone에 저장"];
+    D --> E{"주간 재훈련일인가? (e.g., 매주 일요일)"};
 
+    subgraph "AutoML Retraining Pipeline"
+        direction LR
+        F1["S3의 전체 Raw 데이터 로드"] --> F2["Feature Engineering"];
+        F2 --> F3["AutoML로 최적 모델 탐색<br>(MLflow Experiment Tracking)"];
+        F3 --> F4["기존 Production 모델과 성능 비교"];
+        F4 --> F5{"새 모델 성능이 더 우수한가?"};
+        F5 -->|Yes| F6["MLflow Model Registry에 새 모델 등록<br>& 'Production'으로 Stage 변경"];
+        F5 -->|No| F7["기존 모델 유지"];
+    end
+
+    E -->|Yes| F1;
+    E -->|No| G("End");
+    F6 --> G;
+    F7 --> G;
+```
 ## 7. 배포 전략 (Deployment Strategy)
 
 **GitHub Actions**를 이용한 CI/CD 파이프라인을 구축하여 코드 품질과 배포 안정성을 확보합니다.
