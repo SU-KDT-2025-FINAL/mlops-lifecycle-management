@@ -1,310 +1,149 @@
-# 🚀 AI 예측 분석 SaaS 플랫폼 구축 제안서 (V2)
+# 🚀 AI 예측 분석 SaaS 플랫폼 구축 제안서 (V3 - 고도화 MVP)
 
 ## 1. 제안 개요 (Proposal Summary)
 
-본 문서는 '이커머스 SMB를 위한 AI 예측 분석 플랫폼'의 성공적인 MVP(Minimum Viable Product, 최소 기능 제품) 구축을 위한 기술 제안서입니다.
+본 문서는 '이커머스 SMB를 위한 AI 예측 분석 플랫폼'의 성공적인 MVP(Minimum Viable Product, 최소 기능 제품) 구축을 위한 **고도화된 기술 제안서**입니다.
 
-복잡한 초기 아키텍처 대신, **개발 비용과 시간을 최소화**하고 **빠른 시장 검증**에 집중할 수 있는 **현실적이고 실용적인 아키텍처**를 제안합니다. 이 제안서는 프로젝트의 기술적 청사진이자, 개발팀을 위한 구체적인 가이드 역할을 할 것입니다.
+단순한 기능 구현을 넘어, **Apache Airflow, Apache Spark** 등 업계 표준 도구를 사용하여 **엔터프라이즈급 MLOps 파이프라인 구축을 경험**하는 것을 목표로 합니다. 이 문서는 팀을 위한 기술적 청사진이자, 구체적인 실행 가이드 역할을 할 것입니다.
 
-- **핵심 문제**: 이커머스 SMB는 데이터는 있지만, 분석할 전문가와 시간, 예산이 없다.
-- **핵심 해결책**: 클릭 몇 번으로 고객 이탈율과 생애 가치를 예측하고, 실행 가능한 마케팅 대상을 알려주는 **저렴하고 쉬운 SaaS**.
+- **핵심 목표**: 실제적인 데이터 파이프라인 오케스트레이션과 분산 데이터 처리 기술을 적용하여, 확장 가능하고 안정적인 MLOps 아키텍처를 구축하고 경험합니다.
 
 ## 2. 프로젝트 목표 (Project Goals)
 
-- **비즈니스 목표**:
-  - 3개월 내 MVP 출시하여 초기 유료 고객 10개사 확보.
-  - 고객사의 이탈률 10% 감소 또는 LTV 15% 향상이라는 명확한 성공 사례 창출.
 - **기술적 목표**:
-  - **비용 효율적 아키텍처**: 초기 운영 비용을 최소화하는 관리형 서비스(Managed Service) 중심의 아키텍처 구축.
-  - **자동화된 ML 파이프라인**: 데이터 수집, 훈련, 예측의 핵심 과정을 자동화하여 운영 리소스 최소화.
-  - **확장 가능한 설계**: 서비스 성장 시 유연하게 확장할 수 있는 구조 설계 (Monolith First, Microservice Later).
+  - **고도화된 파이프라인 구축**: `Airflow`를 이용한 데이터 파이프라인 스케줄링 및 `Spark`를 이용한 대용량 데이터 처리/피처 엔지니어링 파이프라인을 구축합니다.
+  - **엔터프라이즈 MLOps 경험**: 실제 기업 환경에서 사용되는 표준적인 데이터 및 MLOps 스택을 직접 구축하고 운영하는 경험을 확보합니다.
+  - **자동화 및 확장성**: 데이터 처리부터 모델 학습, 배포까지의 전 과정을 자동화하고, 향후 대규모 트래픽과 데이터를 수용할 수 있는 확장 가능한 아키텍처의 기반을 마련합니다.
 
-## 3. MVP 시스템 아키텍처 (Pragmatic Architecture for MVP)
+## 3. 고도화 MVP 시스템 아키텍처
 
-초기 단계에서는 복잡한 쿠버네티스나 마이크로서비스 대신, 단일 애플리케이션(Monolith)을 중심으로 구성하여 개발 및 배포의 복잡성을 낮춥니다.
+`Celery`와 개별 스크립트 대신, 파이프라인 오케스트레이션을 위해 `Airflow`를, 대용량 데이터 처리를 위해 `Spark`를 도입합니다.
 
 ```mermaid
 graph TD
-    subgraph "User & CI/CD"
-        User("👤 SMB User")
-        Developer("👩‍💻 Developer") -- "Git Push" --> GitHub
-        GitHub -- "GitHub Actions" --> CI_CD
+    subgraph "CI/CD & User Interface"
+        Developer("👩‍💻 Developer") -- "Push (Code, DAGs)" --> GitHub
+        GitHub -- "GitHub Actions" --> CI_CD["Deploy to Airflow & App"]
+        Admin("👤 Admin") -- "Trigger & Monitor" --> Airflow_UI
+        Admin -- "View Results" --> FastAPI_UI
     end
 
     subgraph "Cloud Infrastructure (AWS)"
-        subgraph "Frontend"
-            CloudFront["🌐 CloudFront (CDN)"] --> S3_Frontend["S3 Bucket for React/Vue App"]
+        subgraph "Application & Orchestration"
+            Airflow_Webserver["🌬️ Airflow (Webserver, Scheduler, Worker)"]
+            FastAPI_App["🚀 FastAPI App (for Results API)"]
         end
 
-        subgraph "Backend (Elastic Beanstalk)"
-            ELB["Load Balancer"] --> FastAPI_App["🚀 FastAPI App (EC2)"]
-            FastAPI_App -- "Background Task" --> Celery
-            Celery["🔄 Celery Workers (EC2)"]
+        subgraph "Data Processing (Dockerized)"
+            SparkCluster["✨ Spark Cluster (Master, Worker)"]
         end
 
         subgraph "Data & ML Platform"
-            RDS["🗄️ PostgreSQL (RDS)"]
-            S3_Data["💧 Data Lake (S3)"]
-            Redis["⚡ Cache & Message Broker (ElastiCache)"]
-            MLflow_Server["🔬 MLflow Server (EC2)"]
+            RDS["🗄️ Data Warehouse (PostgreSQL)"]
+            S3_Data["💧 Data Lake (S3 for raw/processed data)"]
+            MLflow_Server["🔬 MLflow Server"]
         end
     end
-    
-    subgraph "External Services"
-        EcommerceAPI["🛍️ E-commerce Platform API"]
-    end
 
-    User --> CloudFront
-    CI_CD -- "Deploy" --> S3_Frontend
-    CI_CD -- "Deploy" --> FastAPI_App
+    Airflow_Webserver -- "Triggers" --> SparkCluster
+    FastAPI_App -- "Reads from" --> RDS
 
-    FastAPI_App --> RDS
-    FastAPI_App --> Redis
-    FastAPI_App --> S3_Data
-    FastAPI_App --> MLflow_Server
-    FastAPI_App --> EcommerceAPI
-    
-    Celery --> RDS
-    Celery --> Redis
-    Celery --> S3_Data
-    Celery --> MLflow_Server
-    Celery --> EcommerceAPI
+    SparkCluster -- "Reads/Writes" --> S3_Data
+    SparkCluster -- "Writes" --> RDS
+    SparkCluster -- "Logs Experiments" --> MLflow_Server
 ```
 
--   **Frontend**: React/Vue.js로 빌드된 정적 파일을 S3에 호스팅하고, CloudFront(CDN)를 통해 빠르게 전송합니다.
--   **Backend**: AWS Elastic Beanstalk을 사용하여 FastAPI 애플리케이션을 배포합니다. 트래픽에 따라 자동 확장(Auto-scaling)이 가능합니다.
--   **Background Tasks**: 데이터 수집, 모델 훈련 등 시간이 오래 걸리는 작업은 **Celery**를 통해 비동기적으로 처리하여 웹 요청에 영향을 주지 않습니다.
--   **Databases**: 메타데이터는 **Amazon RDS (PostgreSQL)**, 메시지 큐와 캐시는 **ElastiCache (Redis)**, 원본 및 처리 데이터는 **S3**에 저장하여 비용과 관리 효율을 높입니다.
--   **MLOps**: **MLflow** 서버를 별도의 EC2 인스턴스에 구축하여 실험과 모델을 관리합니다.
+-   **Orchestration**: **Apache Airflow**가 전체 데이터 파이프라인(DAG: Directed Acyclic Graph)의 실행, 스케줄링, 모니터링, 재시도를 모두 관리합니다.
+-   **Data Processing**: **Apache Spark**가 Airflow에 의해 트리거되어, S3 Data Lake의 데이터를 읽어와 분산 처리를 통해 피처를 생성하고, 결과를 Data Warehouse(PostgreSQL) 및 S3에 다시 저장합니다.
+-   **Application**: **FastAPI**는 예측 결과를 조회하는 간단한 API와 UI의 역할만 수행합니다. 파이프라인의 실행 및 모니터링은 주로 **Airflow UI**를 통해 이루어집니다.
+-   **MLOps & Storage**: **MLflow**는 Spark 작업 내에서 모델 실험을 기록하는 데 사용되며, **S3**는 원시 데이터와 처리된 데이터, 모델 아티팩트까지 저장하는 핵심 스토리지(Data Lake) 역할을 합니다.
 
-## 4. 핵심 기능 및 시퀀스 다이어그램 (Core Features & Sequence Diagrams)
-
-#### 4.1. 신규 고객 데이터 연동 및 초기 분석
+## 4. 핵심 워크플로우: Airflow DAG 실행
 
 ```mermaid
 sequenceDiagram
-    participant User as 👤 User
-    participant WebApp as 🌐 WebApp
-    participant API as 🚀 FastAPI
-    participant Celery as 🔄 Celery Worker
-    participant EcomAPI as 🛍️ E-com API
-
-    User->>WebApp: 1. Shopify API 키 입력 후 '연동하기' 클릭
-    WebApp->>API: 2. POST /api/v1/connections (shop='shopify', api_key)
-    API->>API: 3. 사용자 정보 및 연결 상태 DB에 저장 (status: PENDING)
-    API->>Celery: 4. start_initial_data_sync.delay(user_id) 작업 요청
-    API-->>WebApp: 5. { "message": "데이터 동기화가 시작되었습니다." }
-    
-    activate Celery
-    Celery->>EcomAPI: 6. 고객, 주문 데이터 요청 (Paginating)
-    EcomAPI-->>Celery: 7. Raw Data
-    Celery->>Celery: 8. 데이터 정제 및 가공 후 S3에 Parquet 파일로 저장
-    Celery->>API: 9. POST /api/internal/connections/complete (user_id)
-    API->>API: 10. DB 연결 상태 업데이트 (status: COMPLETED)
-    deactivate Celery
-    
-    API->>WebApp: 11. WebSocket으로 '연동 완료' 푸시 알림
-    WebApp-->>User: 12. "데이터 연동이 완료되었습니다."
-```
-
-#### 4.2. 고객 이탈 예측 및 결과 확인
-
-```mermaid
-sequenceDiagram
-    participant User as 👤 User
-    participant WebApp as 🌐 WebApp
-    participant API as 🚀 FastAPI
-    participant Celery as 🔄 Celery Worker
+    participant Admin as 👤 Admin
+    participant AirflowUI as 🌬️ Airflow UI
+    participant AirflowScheduler as 🔄 Airflow Scheduler
+    participant Spark as ✨ Spark Job
+    participant S3 as 💧 Data Lake
+    participant RDS as 🗄️ Data Warehouse
     participant MLflow as 🔬 MLflow
 
-    User->>WebApp: 1. 대시보드에서 '이탈 예측 실행' 클릭
-    WebApp->>API: 2. POST /api/v1/predictions/churn
-    API->>Celery: 3. run_churn_prediction_pipeline.delay(user_id) 작업 요청
-    API-->>WebApp: 4. { "message": "예측 분석을 시작합니다. 완료되면 알려드릴게요." }
+    Admin->>AirflowUI: 1. 'customer_churn_pipeline' DAG 실행
+    AirflowUI->>AirflowScheduler: 2. DAG 실행 요청
 
-    activate Celery
-    Celery->>Celery: 5. S3에서 최신 Feature 데이터 로드
-    Celery->>MLflow: 6. 등록된 Production 이탈 예측 모델 URI 요청
-    MLflow-->>Celery: 7. 모델 URI (s3://...)
-    Celery->>Celery: 8. 모델 로드 후 전체 고객 대상 이탈 확률 예측
-    Celery->>Celery: 9. 예측 결과를 DB에 저장
-    deactivate Celery
+    activate AirflowScheduler
+    AirflowScheduler->>Spark: 3. Task 1: generate_dummy_data_spark_job
+    activate Spark
+    Spark->>S3: 4. 더미 데이터 생성 후 Raw Zone에 저장
+    S3-->>Spark: 5. 저장 완료
+    deactivate Spark
+
+    AirflowScheduler->>Spark: 6. Task 2: feature_engineering_spark_job
+    activate Spark
+    Spark->>S3: 7. Raw 데이터 로드
+    S3-->>Spark: 8. 데이터 반환
+    Spark->>Spark: 9. 피처 엔지니어링 수행
+    Spark->>S3: 10. 처리된 데이터를 Processed Zone에 저장
+    deactivate Spark
     
-    API->>WebApp: 10. WebSocket으로 '예측 완료' 푸시 알림
-    WebApp->>API: 11. GET /api/v1/results/churn?risk_level=high
-    API->>API: 12. DB에서 이탈 위험 고객 리스트 조회
-    API-->>WebApp: 13. 이탈 위험 고객 리스트 (JSON)
-    WebApp-->>User: 14. 대시보드에 결과 차트와 테이블 표시
+    AirflowScheduler->>Spark: 11. Task 3: train_model_spark_job
+    activate Spark
+    Spark->>S3: 12. 피처 데이터 로드
+    Spark->>MLflow: 13. MLflow 'start_run'
+    Spark->>Spark: 14. 모델 학습 및 평가
+    Spark->>MLflow: 15. 파라미터, 메트릭, 모델 로깅
+    Spark->>RDS: 16. 예측 결과를 DB에 저장
+    deactivate Spark
+    deactivate AirflowScheduler
 ```
 
-## 5. 컴포넌트 관계도 (Component Diagram)
-
-```mermaid
-graph TD
-    subgraph "User Interface"
-        Web["Web App (React)"]
-    end
-
-    subgraph "Backend (FastAPI on Elastic Beanstalk)"
-        Endpoints["API Endpoints"]
-        Dispatcher["Celery Task Dispatcher"]
-        Endpoints --> Dispatcher
-    end
-
-    subgraph "Async Workers (Celery)"
-        DSW["Data Sync Worker"]
-        MLW["ML Pipeline Worker"]
-    end
-
-    subgraph "Data & ML Platform"
-        DB["PostgreSQL (RDS)"]
-        S3["S3 Data Lake"]
-        Redis["Redis (ElastiCache)"]
-        MLflow["MLflow Server"]
-    end
-
-    subgraph "External Services"
-        EcomAPI["E-commerce API"]
-    end
-
-    Web --> Endpoints
-    Endpoints --> DB
-
-    Dispatcher -- "sends job" --> Redis
-
-    Redis -- "delivers job" --> DSW
-    Redis -- "delivers job" --> MLW
-
-    DSW --> EcomAPI
-    DSW --> S3
-
-    MLW --> S3
-    MLW --> MLflow
-    MLW --> DB
-```
-
-## 6. 데이터 및 알고리즘 플로우 (Data & Algorithm Flow)
-
-#### 6.1. 일일 데이터 동기화 및 자동 재훈련 플로우
-
-```mermaid
-graph TD
-    A("Start: 매일 03:00 스케줄 실행<br>Celery Beat") --> B["E-commerce API 호출"];
-    B --> C["어제 자 신규/변경 데이터 수집"];
-    C --> D["S3 Raw Data Zone에 저장"];
-    D --> E{"주간 재훈련일인가? (e.g., 매주 일요일)"};
-
-    subgraph "AutoML Retraining Pipeline"
-        direction LR
-        F1["S3의 전체 Raw 데이터 로드"] --> F2["Feature Engineering"];
-        F2 --> F3["AutoML로 최적 모델 탐색<br>(MLflow Experiment Tracking)"];
-        F3 --> F4["기존 Production 모델과 성능 비교"];
-        F4 --> F5{"새 모델 성능이 더 우수한가?"};
-        F5 -->|Yes| F6["MLflow Model Registry에 새 모델 등록<br>& 'Production'으로 Stage 변경"];
-        F5 -->|No| F7["기존 모델 유지"];
-    end
-
-    E -->|Yes| F1;
-    E -->|No| G("End");
-    F6 --> G;
-    F7 --> G;
-```
-
-## 7. 배포 전략 (Deployment Strategy)
-
-**GitHub Actions**를 이용한 CI/CD 파이프라인을 구축하여 코드 품질과 배포 안정성을 확보합니다.
-
-```mermaid
-graph TD
-    subgraph "Local"
-        Dev["👩‍💻 Developer"]
-    end
-    subgraph "GitHub"
-        PR["Pull Request"]
-        Main["main branch"]
-    end
-    subgraph "AWS Staging"
-        Staging_EB["Staging Elastic Beanstalk"]
-    end
-    subgraph "AWS Production"
-        Prod_EB["Production Elastic Beanstalk"]
-    end
-
-    Dev -- "Push feature branch" --> PR
-    PR -- "On PR" --> A["Run Tests & Lint"]
-    PR -- "Merge" --> Main
-    Main -- "On Push to main" --> B["Build Docker Image<br>Push to ECR"]
-    B --> C["Deploy to Staging"]
-    C --> Staging_EB
-    Main -- "On Manual Trigger<br>(Tag Release)" --> D["Deploy to Production"]
-    D --> Prod_EB
-```
-
-## 8. 기술 스택 (Tech Stack for MVP)
+## 5. 기술 스택 (Tech Stack for MVP)
 
 | 구분 | 기술 | 사유 |
 | :--- | :--- | :--- |
-| **Frontend** | React, TypeScript | 풍부한 생태계, 안정적인 타입 지원 |
-| **Backend** | Python, FastAPI | 높은 생산성, 비동기 지원, 자동 API 문서화 |
-| **Background** | Celery, Redis | Python 생태계의 표준 비동기 작업 처리 |
-| **Database** | PostgreSQL (AWS RDS) | 안정적인 관계형 데이터베이스, 관리 용이성 |
-| **Data Storage** | AWS S3 | 저렴하고 확장성 높은 오브젝트 스토리지 |
-| **MLOps** | MLflow | 실험/모델 관리의 표준, 자체 호스팅으로 비용 절감 |
-| **Deployment** | Docker, AWS Elastic Beanstalk | 관리형 서비스로 인프라 관리 부담 최소화 |
-| **CI/CD** | GitHub Actions | Git 저장소와 통합된 편리한 CI/CD 환경 |
+| **Orchestration** | **Apache Airflow** | 복잡한 데이터 파이프라인의 스케줄링 및 관리를 위한 업계 표준 도구 |
+| **Data Processing**| **Apache Spark** | 대용량 데이터 분산 처리 및 피처 엔지니어링을 위한 표준 기술 |
+| **Backend** | Python, FastAPI | 결과 조회를 위한 경량 API 서버 및 간단한 UI 제공 |
+| **Database** | PostgreSQL | 정제된 데이터 및 예측 결과를 저장하는 Data Warehouse 역할 |
+| **Data Storage** | AWS S3 | 원시/가공 데이터, 모델 아티팩트를 모두 저장하는 Data Lake |
+| **MLOps** | MLflow | 실험/모델 관리 및 추적의 표준 |
+| **Deployment** | Docker, Docker Compose | 개발 환경의 일관성 및 배포 편의성 확보 |
+| **CI/CD** | GitHub Actions | 코드 및 DAG 파일의 테스트와 배포 자동화 |
 
-## 9. 단계별 개발 로드맵 (Phased Development Roadmap)
+## 6. 단계별 개발 로드맵 (Phased Development Roadmap)
 
-1.  **Phase 1: MVP (3개월)**
-    -   **목표**: 핵심 가치 검증
-    -   **기능**:
-        -   Shopify 플랫폼 연동
-        -   **고객 이탈 예측** 기능
-        -   결과 확인을 위한 기본 대시보드
-    -   **결과물**: 초기 유료 고객 사용 가능한 최소 기능 제품
+### Phase 1: 고도화 MVP (3개월)
+- **목표**: Airflow + Spark 기반의 MLOps 파이프라인 핵심 구축 및 경험
+- **주요 Task**
+    1. **인프라 구축 (Data Engineer / Infra)**
+        - `docker-compose.yml`을 사용하여 Airflow, Spark, PostgreSQL, MLflow 등 모든 서비스 컨테이너화 및 실행 환경 구축
+        - Airflow와 Spark 클러스터가 서로 통신할 수 있도록 네트워크 설정
+        - `pyproject.toml`로 의존성 관리 및 `.env`로 설정 분리
+    2. **데이터 파이프라인 개발 (Data Engineer)**
+        - **(Task 1)** `PySpark`를 사용하여 더미 데이터를 생성하고 S3에 저장하는 Spark Job 코드 작성
+        - **(Task 2)** S3의 데이터를 읽어 피처를 생성하고 다시 S3와 PostgreSQL에 저장하는 Spark Job 코드 작성
+        - **(Task 3)** 위 Spark Job들을 순차적으로 실행하는 **Airflow DAG (`customer_churn_pipeline.py`)** 작성
+    3. **모델 개발 및 실험 (ML Engineer)**
+        - **(Task 4)** 피처 엔지니어링이 완료된 데이터를 Spark 데이터프레임으로 받아 모델(XGBoost on Spark 등)을 학습시키는 Spark ML Job 코드 작성
+        - MLflow와 연동하여 실험 파라미터, 메트릭, 모델을 로깅하는 로직 구현
+        - 이 모델 학습 Job을 Airflow DAG의 마지막 Task로 추가
+    4. **결과 확인 API/UI (API Developer)**
+        - PostgreSQL에 저장된 최종 예측 결과를 조회하는 FastAPI 엔드포인트(`GET /api/v1/results`) 구현
+        - 조회된 결과를 간단한 테이블/차트로 보여주는 Jinja2 템플릿 페이지 작성
+    5. **CI/CD 및 자동화 (Infra)**
+        - GitHub Actions를 사용하여 코드 Push 시 Airflow DAG 유효성 검사, Python 코드 테스트 자동화
+        - `main` 브랜치 병합 시 새로운 DAG 파일이 자동으로 Airflow 서버에 배포되도록 CI/CD 파이프라인 구축
 
-2.  **Phase 2: 확장 (이후 3개월)**
-    -   **목표**: 서비스 확장 및 고도화
-    -   **기능**:
-        -   **LTV 예측** 기능 추가
-        -   Cafe24, WooCommerce 등 지원 플랫폼 확대
-        -   마케팅 액션 제안 기능 (e.g., 이탈 위험 고객 쿠폰 발송)
+### Phase 2: 확장 및 고도화
+- **목표**: 실제 데이터 소스 연동 및 운영 안정성 강화
+- **주요 Task**
+    - 실제 이커머스 플랫폼(Shopify 등) 데이터 수집을 위한 Spark Job 및 Airflow DAG 개발
+    - 데이터 품질 검증(Great Expectations 등) 단계 추가
+    - 모델 모니터링 및 자동 재학습 트리거 로직 구현
+    - Kubernetes(EKS) 기반으로 인프라 전환 고려
 
-3.  **Phase 3: 성숙 (이후 6개월)**
-    -   **목표**: 기술적 우위 확보
-    -   **기능**:
-        -   수요 예측, 재고 예측 등 예측 모델 다각화
-        -   아키텍처 고도화 (필요시 마이크로서비스 전환 고려)
-        -   성능 및 비용 최적화
+## 7. 결론
 
-## 10. 결론
-
-본 제안서는 **"빠른 실행, 낮은 비용, 높은 확장성"** 이라는 MVP의 핵심 철학을 바탕으로 작성되었습니다. 제안된 아키텍처와 로드맵은 초기 시장 진입의 리스크를 최소화하고, 비즈니스 성장에 따라 안정적으로 스케일업할 수 있는 최적의 경로를 제시합니다.
-
-다음 단계로, Phase 1 개발을 위한 구체적인 스프린트 계획과 태스크 분배를 진행할 것을 제안합니다. 
-
----
-# MLOPS
-
-## 구체화 방향
-1. 학습 데이터 스키마 충분성
-2. 기존 분석사례 정확도 범위
-3. 시스템 최소 요건 (외부 / 내부)
-4. 정상동작 바운더리 검사 및 추적 방법
-  - 예측 이력 모니터링 & 인사이트 정리
-  - 모델 및 프롬프트 버전 등에 따른 성능 관리
-5. 예측 이상 발생 시 대응방법 버전 수립
-6. 대응 방법별 자동화 방안
-   1) 트리거 & 루틴 정의
-     : 정상 예측 정확도 벗어날 경우 
-       실행할 workflow 정의
-   2) 의심되는 원인별 대응
-     : Input 이상으로 의심될 경우
-      - prompt Template 버전 변경 등
-     : Output(모델성능) 이상으로 의심될 경우
-      - 모델 변경, 모델 재학습 등
-
-## 팀원 필요
-- 열정을 가진 사람
-- 분석에 열정을 가진 사람
-- 자동화에 열정을 가진 사람
+본 문서는 단순한 MVP를 넘어, **실제 기업 환경에서 마주할 수 있는 기술 스택과 아키텍처를 경험**하는 것을 목표로 하는 고도화된 프로젝트 계획을 제시합니다. 이 과정을 통해 팀은 확장성 있고 안정적인 MLOps 파이프라인을 구축하는 핵심 역량을 확보하게 될 것입니다.
